@@ -1,9 +1,15 @@
-![image](https://user-images.githubusercontent.com/31404198/125399943-366f8f80-e3ec-11eb-9e78-357dd4b19e01.png)
+[ 이미지 추가 ]
 
-# 공유 모빌리티
+# 전자도서관리시스템
+
+- Repository
+  - 도서관리 : https://github.com/chocopieo/ebookmgmt-book.git
+  - 예약관리 : https://github.com/chocopieo/ebookmgmt-rent.git
+  - 결제관리 : https://github.com/chocopieo/ebookmgmt-payment.git
+  - 마이페이지 : https://github.com/chocopieo/ebookmgmt-dashboard.git
+  - API 게이트웨이 : https://github.com/chocopieo/ebookmgmt-gateway.git
 
 - 체크포인트 : https://workflowy.com/s/assessment-check-po/T5YrzcMewfo4J6LW
-
 
 # Table of contents
 
