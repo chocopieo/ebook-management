@@ -1,0 +1,276 @@
+1. vs code를 이용해서 소스코드 폴더 오픈
+
+2. 주키퍼실행 ( 로컬 기준 )
+bin\windows\zookeeper-server-start.bat config\zookeeper.properties
+
+3. 카프카실행 ( 로컬 기준 )
+bin\windows\kafka-server-start.bat config\server.properties
+
+4. 카프카 토픽 확인 ( 로컬 기준 )
+bin\windows\kafka-topics.bat -bootstrap-server localhost:9092 --list localhost:9092
+$kafka_home/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list 127.0.0.1:9092
+
+5. 카프카 이벤트 확인 ( 로컬 기준  )
+bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic ebookmanagement --from-beginning
+$kafka_home/bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic ebookmanagement
+
+6. book, rent, payment 실행
+rent service 밑 PaymentInfoService.java 파일에서 12번째줄 변경
+   - 변경 전 : @FeignClient(name="ebookmgmt-payment", url="http://ebookmgmt-payment:8080")
+   - 변경 후 : @FeignClient(name="ebookmgmt-payment", url="http://localhost:8082")
+
+  cd ebookmgmt-book
+  mvn spring-boot:run
+
+  cd ebookmgmt-rent
+  mvn spring-boot:run 
+
+  cd ebookmgmt-payment
+  mvn spring-boot:run
+
+  cd ebookmgmt-gateway
+  mvn spring-boot:run
+
+
+
+[ BOOK Service ]
+1. 책 등록
+http POST http://localhost:8083/books bookName="Hello, JAVA" rentalFee=3000
+http POST http://localhost:8083/books bookName="Hello, SpringBoot" rentalFee=3000
+
+2. 책 등록 내역 확인
+http http://localhost:8083/books    ## 전체 내역 확인
+http http://localhost:8083/books/1  ## 1번 책 확인 (POSSIBLE 상태)
+
+3. 책 수정
+http PATCH http://localhost:8083/books/2 rentalFee=5000
+
+4. 책 삭제
+http DELETE http://localhost:8083/books/2
+
+5. 대여 승인/거절 처리
+http PATCH http://localhost:8083/books/1 status="APPROVED"
+http PATCH http://localhost:8083/books/1 status="REJECTED"
+
+[ RENT Service ]
+1. 책 예약 신청
+http POST http://localhost:8081/rents userId=1 bookId=1 bookName="Hello, JAVA" rentalFee=3000
+
+2. 책 예약 내역 확인
+http http://localhost:8081/rents    ## 전체 내역 확인
+http http://localhost:8081/rents/1  ## 1번 예약 내역 확인 (RENT_REQUEST 상태)
+
+3. 책 반납 시청
+http PATCH http://localhost:8081/rents/1
+
+[ PAYMENT Service ]
+1. 예약 결제
+http POST http://localhost:8082/payments userId=1 rentId=1 bookId=1 rentalFee=3000
+
+2. 결제 내역 확인
+http http://localhost:8082/payments    ## 전체 내역 확인
+http http://localhost:8082/payments/1  ## 1번 결제 내역 확인 (PAID 상태)
+
+
+
+
+http localhost:8088/order/1	 # USE 상태 확인
+http localhost:8088/payment/1  # PAID 상태 확인
+http localhost:8088/rent/1  # APPROVE 상태 확인
+
+3. 렌트 신청
+http PUT localhost:8088/rent/1
+
+4. 렌트 상태 확인
+http localhost:8088/rent/1 # RENT 상태 확인
+
+5. 렌트 후 차감 확인
+
+[사용 취소]
+1. 사용 신청
+http POST localhost:8088/order customerId=99 orderId=3
+2. 사용 취소
+http PUT localhost:8088/order/cancel/3    
+# 주문 취소 확인
+http localhost:8088/order/3
+# 결제 취소 확인
+http localhost:8088/payment
+
+[반납]
+1. 사용 신청
+http POST localhost:8088/order customerId=99  orderId=4
+2. 렌트 신청
+http PUT localhost:8088/rent/4 
+3. 반납 신청
+http PUT localhost:8088/order/return/4 
+
+http localhost:8088/order/4
+http localhost:8088/rent/4
+
+-----------------------------------------------------------
+
+# 렌트승인 서비스 (Rent) 를 잠시 내려놓음
+
+#사용신청 처리
+http POST localhost:8088/order customerId=11 time=3 orderId=7  #Success
+
+#사용신청 완료상태 까지 Event 진행확인
+http localhost:8088/order/7
+
+#렌트승인 서비스 기동
+cd rent
+mvn spring-boot:run
+
+#렌트 상태 Update 확인
+http localhost:8088/rent/7
+콘솔창에서 확인
+/***********************************************************/
+
+빌드/배포
+각 프로젝트 jar를 Dockerfile을 통해 Docker Image 만들어 ECR저장소에 올린다.
+EKS 클러스터에 접속한 뒤, 각 서비스의 deployment.yaml, service.yaml을 kuectl명령어로 서비스를 배포한다.
+
+코드 형상관리 : https://github.com/chocopieo/shared-mobility 하위 repository에 각각 구성
+운영 플랫폼 : AWS의 EKS(Elastic Kubernetes Service)
+Docker Image 저장소 : AWS의 ECR(Elastic Container Registry)
+
+----------------------------------------
+운영 > 실습 스크립트 > AWS 		
+오토스케일러를 위해 Metric-Server 무조건 설치필요		
+오류 발생 시, pod 상태를 확인		
+
+kubectl get pod,deploy,svc,pvc,configmap  # 전체 서비스 확인
+kubectl logs -f [pod 이름]	              # POD 로그 확인
+		
+saga : 이벤트 드리븐한 통신 / 비동기		
+CQRS : 대시보드/마이페이지		
+Correlation : MSA 주문>주문취소 시, FindById 하여 해당 건 취소하는 걸 보여줘야됨		
+Req/Resp : 동기호출		
+GateWay : 단일접점 창구		
+Deploy or Pipeline : yaml 통해 쿠버네티스에 올리기만 해도됨		
+Circuit Breaker : 팀/개인이 동일 모듈에 설치된버전을 셤보면 점수안줌		
+HPA : 매트릭스 서버 설치 후, ??		
+"Readness-Probe : 여기에 설정된 소켓이나 web url 든 확인해서 보내서 무정지배포가 
+가능함을 증빙, 브라우저 갱신 후, availity 가 100 이됨을 증명"		
+config Map or PV(Persistence Volume) : 각각의 스테이지에 돌더라도 환경정보는 동일해야한다(seceret) , PV : 파일첨부와 같은 리소스를 스토리지가 갖고있는 볼륨을 MSA에 마운트하여야하며 증빙또한 필수		
+Polyglot : DB 저장소가 다른 저장소 형태면 됨		
+LiveNess- Probe : 
+
+
+1. 운영
+aws configure 
+
+# 아래 세문단 차례로 입력
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eks-admin
+  namespace: kube-system
+EOF
+
+cat <<EOF | kubectl apply -f -
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: eks-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: eks-admin
+  namespace: kube-system
+EOF
+
+aws eks --region ap-northeast-2 update-kubeconfig --name user01-eks
+
+kubectl -n kube-system describe secret eks-admin
+
+[Code Build 방법]
+# 각 MSA 모듈 내 buildspec.yml 파일 생성
+# CodeBuild 접속, 프로젝트 빌드 생성
+# 프로젝트 빌드 생성 후 'user01-rent-policy' 정책 생성 필수 (미설정 시, PRE_BUILD 에서 오류 발생)
+IAM
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetAuthorizationToken",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        }
+    ]
+}
+
+# 관리콘솔에서 S3 검색 > 버킷 만들기 > pipeline만드는 region이 AWS리전과 같아야 한다 
+# 관리콘솔에서 CodeBuild> 내 파이프라인으로 이동 >빌드 세부 정보> 아티팩트 편집 > 유형 S3, 버킷이름 user22~선택>아티팩트 업데이트
+
+[수동 Build & Push 방법]
+# eks cluster 생성
+eksctl create cluster --name [user01-eks] --version 1.16 --nodegroup-name standard-workers --node-type t3.medium --nodes 3 --nodes-min 1 --nodes-max 4
+
+# eks cluster 설정
+aws eks --region [ap-northeast-1] update-kubeconfig --name [user01-eks]
+
+# eks 설정 내역 확인
+kubectl config current-context
+
+# metric server 설치 ( 오토스케일러 수행 시 필수 )
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml
+
+# Helm 설치
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
+chmod 700 get_helm.sh
+./get_helm.sh
+(Helm 에게 권한을 부여하고 초기화)
+kubectl --namespace kube-system create sa tiller
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+helm init --service-account tiller
+
+# Kafka 설치
+helm repo update
+helm repo add bitnami https://charts.bitnami.com/bitnami
+kubectl create ns kafka
+helm install my-kafka bitnami/kafka --namespace kafka
+
+# namespace 생성
+kubectl create namespace [sharedmobility]
+
+# image build & push ( 코드 수정 부를 AWS 의 저장소에 업로드 하는 행위, script.sh 참조)
+cd Order
+mvn package
+docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-order:latest .
+docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-order:latest
+
+# delete & deploy ( 삭제 및 배포 )
+cd ..
+kubectl delete -f kubernetes/sharedmobility/order.yml
+kubectl apply -f kubernetes/sharedmobility/order.yml
+
+# 상태 확인
+kubectl get pod,deploy,svc,pvc,configmap
+
+# External IP 설정방법 (shared-mobility/kubernetes/sharedmobility/gateway.yml 참고)
+    # type 을 LoadBalancer 로 주면 배포 시, 자동으로 External IP 생성됨
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: gateway
+  type: LoadBalancer
