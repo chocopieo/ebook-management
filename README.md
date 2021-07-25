@@ -8,22 +8,21 @@
   - 결제관리 : https://github.com/chocopieo/ebookmgmt-payment.git
   - 마이페이지 : https://github.com/chocopieo/ebookmgmt-dashboard.git
   - API 게이트웨이 : https://github.com/chocopieo/ebookmgmt-gateway.git
-
 - 체크포인트 : https://workflowy.com/s/assessment-check-po/T5YrzcMewfo4J6LW
 
 # Table of contents
-
-- [공유 모빌리티](#---)
-  - [서비스 시나리오](#서비스-시나리오)
-  - [체크포인트](#체크포인트)
-  - [분석/설계](#분석설계)
+- [전자도서관리시스템](#---)  
+  - [서비스 시나리오](#서비스-시나리오)    
+  - [체크포인트](#체크포인트)    
+  - [분석/설계](#분석설계)    
   - [구현](#구현)
     - [게이트웨이 적용](#게이트웨이-적용)
     - [DDD 의 적용](#ddd-의-적용)
+    - [폴리글랏 퍼시스턴스](#폴리글랏-퍼시스턴스)
     - [동기식 호출 과 Fallback 처리](#동기식-호출-과-fallback-처리)
     - [비동기식 호출 과 Eventual Consistency](#비동기식-호출--시간적-디커플링--장애격리--최종-eventual-일관성-테스트)
+    - [Correlation-key](#correlation-key)
     - [CQRS](#cqrs)
-    - [폴리글랏 퍼시스턴스](#폴리글랏-퍼시스턴스)
   - [운영](#운영)
     - [Deploy / Pipeline](#deploy--pipeline)
     - [무정지 재배포(Readiness Probe)](#무정지-재배포readiness-probe)
@@ -31,7 +30,6 @@
     - [Config Map](#config-map)
     - [동기식 호출 / 서킷 브레이킹](#circuit-breaker)
     - [오토스케일 아웃](#오토스케일-아웃)
-
 
 # 서비스 시나리오
 
