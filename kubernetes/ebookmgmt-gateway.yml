@@ -1,0 +1,40 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebookmgmt-gateway
+  labels:
+    app: ebookmgmt-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ebookmgmt-gateway
+  template:
+    metadata:
+      labels:
+        app: ebookmgmt-gateway
+    spec:
+      containers:
+        - name: ebookmgmt-gateway
+          image: username/ebookmgmt-gateway:latest
+          ports:
+            - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ebookmgmt-gateway
+  labels:
+    app: ebookmgmt-gateway
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: ebookmgmt-gateway
+    type: LoadBalancer
+
