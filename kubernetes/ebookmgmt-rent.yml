@@ -21,11 +21,12 @@ spec:
           image: 879772956301.dkr.ecr.ap-southeast-2.amazonaws.com/user18-ebookmgmt-rent:v0.1
           ports:
             - containerPort: 8080
-          resources:
-            limits:
-              cpu: 500m
-            requests:
-              cpu: 200m
+          env:
+            - name: api.url.payment
+              valueFrom:
+                configMapKeyRef:
+                  name: user18-ebookmgmt-rent-configmap
+                  key: api.url.payment
           readinessProbe:
             httpGet:
               path: '/actuator/health'
@@ -59,3 +60,13 @@ spec:
   selector:
     app: user18-ebookmgmt-rent
 
+
+---
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user18-ebookmgmt-rent-configmap
+data:
+  api.url.payment: http://user18-ebookmgmt-payment:8080
