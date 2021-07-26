@@ -939,105 +939,105 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 
 - ebookmgmt-book/buildspec.yml 파일
 ```YML
-version: 0.2
-
-env:
-  variables:
-    _PROJECT_NAME: "user18-ebookmgmt-book"
-
-phases:
-  install:
-    runtime-versions:
-      java: corretto8
-      docker: 18
-    commands:
-      - echo install kubectl
-      - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/kubectl
-  pre_build:
-    commands:
-      - echo Logging in to Amazon ECR...
-      - echo $_PROJECT_NAME
-      - echo $AWS_ACCOUNT_ID
-      - echo $AWS_DEFAULT_REGION
-      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
-      - echo start command
-      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
-  build:
-    commands:
-      - echo Build started on `date`
-      - echo Building the Docker image...
-      - mvn package -Dmaven.test.skip=true
-      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION  .
-  post_build:
-    commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker image...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - echo connect kubectl
-      - kubectl config set-cluster k8s --server="$KUBE_URL" --insecure-skip-tls-verify=true
-      - kubectl config set-credentials admin --token="$KUBE_TOKEN"
-      - kubectl config set-context default --cluster=k8s --user=admin
-      - kubectl config use-context default
-      - |
-        cat <<EOF | kubectl apply -f -
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: $_PROJECT_NAME
-          labels:
-            app: $_PROJECT_NAME
-        spec:
-          ports:
-            - port: 8080
-              targetPort: 8080
-          selector:
-            app: $_PROJECT_NAME
-        EOF
-      - |
-        cat  <<EOF | kubectl apply -f -
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: $_PROJECT_NAME
-          labels:
-            app: $_PROJECT_NAME
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
+  version: 0.2
+  
+  env:
+    variables:
+      _PROJECT_NAME: "user18-ebookmgmt-book"
+  
+  phases:
+    install:
+      runtime-versions:
+        java: corretto8
+        docker: 18
+      commands:
+        - echo install kubectl
+        - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+        - chmod +x ./kubectl
+        - mv ./kubectl /usr/local/bin/kubectl
+    pre_build:
+      commands:
+        - echo Logging in to Amazon ECR...
+        - echo $_PROJECT_NAME
+        - echo $AWS_ACCOUNT_ID
+        - echo $AWS_DEFAULT_REGION
+        - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
+        - echo start command
+        - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+    build:
+      commands:
+        - echo Build started on `date`
+        - echo Building the Docker image...
+        - mvn package -Dmaven.test.skip=true
+        - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION  .
+    post_build:
+      commands:
+        - echo Build completed on `date`
+        - echo Pushing the Docker image...
+        - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+        - echo connect kubectl
+        - kubectl config set-cluster k8s --server="$KUBE_URL" --insecure-skip-tls-verify=true
+        - kubectl config set-credentials admin --token="$KUBE_TOKEN"
+        - kubectl config set-context default --cluster=k8s --user=admin
+        - kubectl config use-context default
+        - |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: $_PROJECT_NAME
+            labels:
               app: $_PROJECT_NAME
-          template:
-            metadata:
-              labels:
+          spec:
+            ports:
+              - port: 8080
+                targetPort: 8080
+            selector:
+              app: $_PROJECT_NAME
+          EOF
+        - |
+          cat  <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: $_PROJECT_NAME
+            labels:
+              app: $_PROJECT_NAME
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
                 app: $_PROJECT_NAME
-            spec:
-              containers:
-                - name: $_PROJECT_NAME
-                  image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
-                  ports:
-                    - containerPort: 8080
-                  readinessProbe:
-                    httpGet:
-                      path: /actuator/health
-                      port: 8080
-                    initialDelaySeconds: 10
-                    timeoutSeconds: 2
-                    periodSeconds: 5
-                    failureThreshold: 10
-                  livenessProbe:
-                    httpGet:
-                      path: /actuator/health
-                      port: 8080
-                    initialDelaySeconds: 120
-                    timeoutSeconds: 2
-                    periodSeconds: 5
-                    failureThreshold: 5
-        EOF
-cache:
-  paths:
-    - '/root/.m2/**/*'
+            template:
+              metadata:
+                labels:
+                  app: $_PROJECT_NAME
+              spec:
+                containers:
+                  - name: $_PROJECT_NAME
+                    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+                    ports:
+                      - containerPort: 8080
+                    readinessProbe:
+                      httpGet:
+                        path: /actuator/health
+                        port: 8080
+                      initialDelaySeconds: 10
+                      timeoutSeconds: 2
+                      periodSeconds: 5
+                      failureThreshold: 10
+                    livenessProbe:
+                      httpGet:
+                        path: /actuator/health
+                        port: 8080
+                      initialDelaySeconds: 120
+                      timeoutSeconds: 2
+                      periodSeconds: 5
+                      failureThreshold: 5
+          EOF
+  cache:
+    paths:
+      - '/root/.m2/**/*'
 ```
 - Deploy 완료
 ![image](https://user-images.githubusercontent.com/31404198/126938103-6d32247c-e5e7-48d3-a60d-f6a58f1855c4.png)
@@ -1048,131 +1048,155 @@ cache:
   결제 요청이 과도할 경우 CB 를 통하여 장애격리.
 - Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
 ```yml
-# ebookmgmt-rent/application.yml
-
-feign:
+  # ebookmgmt-rent/application.yml
+  
+  feign:
+    hystrix:
+      enabled: true
   hystrix:
-    enabled: true
-hystrix:
-  command:
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
+    command:
+      default:
+        execution.isolation.thread.timeoutInMilliseconds: 610
 ```
 - 피호출 서비스(결제:payment) 의 부하 처리
 ```JAVA
-    @PrePersist
-    public void onPrePersist(){
+  @PrePersist
+  public void onPrePersist(){
 
-        // 강제 Delay
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+      // 강제 Delay
+      try {
+          Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+      } catch (InterruptedException e) {
+          e.printStackTrace();
+      }
 
-        ...
-    }
+      ...
+  }
 ```
-- siege 툴을 통한 서킷 브레이커 동작 확인
-  ![image](https://user-images.githubusercontent.com/30138356/125381495-f6e67a80-e3ce-11eb-85fc-d6b454018209.PNG)
-  ![image](https://user-images.githubusercontent.com/30138356/125381513-006fe280-e3cf-11eb-9323-fe7775b8b1b4.PNG)
-
-
-
-
-## 무정지 재배포(Readiness Probe)
-- 현재 정상적으로 동작중인 상황 확인
-
-![image](https://user-images.githubusercontent.com/22028798/125400383-c6add480-e3ec-11eb-8e0b-aeddf0a0c8fb.png)
-
-- order.yml 파일에 Readiness Probe 부분 설정
-
-![image](https://user-images.githubusercontent.com/22028798/125400485-e5ac6680-e3ec-11eb-92ca-96c3abe91876.png)
-
-- 디플로이 시작
-
-![image](https://user-images.githubusercontent.com/22028798/125400543-fc52bd80-e3ec-11eb-8dc6-1a8ac53ef31d.png)
-
-- siege로 부하 시작 -> 가용률 100% 확인
-
-![image](https://user-images.githubusercontent.com/22028798/125400628-18565f00-e3ed-11eb-9c9c-ea4c64c6717d.png)
-
-
-## Self-healing (Liveness Probe)
-- deployment.yml에 정상 적용되어 있는 livenessProbe
-
-![image](https://user-images.githubusercontent.com/22028798/125394269-69ae2080-e3e4-11eb-9611-3a79a072cdfc.png)
-
-- 정상작동 중 확인
-
-![image](https://user-images.githubusercontent.com/22028798/125394378-906c5700-e3e4-11eb-9728-ed329ef46efc.png)
-
-- 포트 및 경로 잘못된 값으로 변경 후 retry 시도 확인
-
-![image](https://user-images.githubusercontent.com/22028798/125394475-b1cd4300-e3e4-11eb-8c80-d953e29bed0c.png)
-![image](https://user-images.githubusercontent.com/22028798/125394858-4c2d8680-e3e5-11eb-98d6-3a7e3409bb6e.png)
-
-
-## Config Map
-
-- 변경 가능성이 있는 설정을 ConfigMap을 사용하여 관리  
-  - order 서비스에서 바라보는 payment 서비스 url 일부분을 ConfigMap 사용하여 구현​  
-
-- order 서비스 내 FeignClient (order/src/main/java/sharedmobility/external/PaymentInfoService.java)
-```java
-@FeignClient(name="payment", url="http://${api.url.order}")
-public interface PaymentInfoService {
-    @RequestMapping(method= RequestMethod.POST, path="/payment")
-    public boolean pay(@RequestBody PaymentInfo paymentInfo);
-
-}
+- 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인
+- 동시사용자 100명
+- 60초 동안 실시
+```shell
+  $ siege -v -c100 -t60S -r10 --content-type "application/json" 'http://user18-ebookmgmt-rent:8080/rents POST {"userId":1, "bookId":1, "bookName":"Hello, JAVA", "rentalFee":3000}'
 ```
-
-- order 서비스 application.yml
-```yml
-api: 
-  url: 
-    order: ${order-url}
-```
-
-- order 서비스 order.yml
-```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: order
-  labels:
-    app: order
-spec:
-  -- 생략 --
-          env:
-            - name: ORDER-URL
-              valueFrom:
-                configMapKeyRef:
-                  name: order-configmap
-                  key: order-url         
-  -- 생략 --
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: order-configmap
-data:
-  order-url: payment:8080
-```
-
-- 적용 후 상세내역 확인 가능
-![KakaoTalk_20210713_132118829](https://user-images.githubusercontent.com/30138356/125390117-4469e400-e3dd-11eb-991e-a5731893f401.png)
-
+![image](https://user-images.githubusercontent.com/31404198/126951700-e30cb269-064b-4114-a186-1c55e5d88ef4.png)
+![image](https://user-images.githubusercontent.com/31404198/126951598-c2fd54a0-5166-4ad6-bf36-711df0d25d43.png)
+- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만, 76.56% 가 성공하였고, 23.44%가 실패했다는 것은 고객 사용성에 있어 좋지 않기 때문에 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
 
 ## 오토스케일 아웃
-- 결제 서비스에 대한 Replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15%를 넘어서면 Replica 를 10개까지 늘려준다.
+앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다.
 
-- (오토스케일 미적용 시) siege -c10 -t105 -r10 -v --content-type "application/json" 'http://gateway:8080/order POST {"orderId" : 1, "customerId": 1}'
-![KakaoTalk_20210713_115034531](https://user-images.githubusercontent.com/30138356/125382776-43cb5080-e3d1-11eb-946e-381e02d18f79.png)
+- (Spring FeignClient + Hystrix 적용한 경우) 위에서 설정된 CB는 제거
+- 오토스케일 아웃 테스트를 위해 ebookmgmt-payment/buildspec.yml에 메모리 설정 추가
+```yaml
+  resources:
+    limits:
+      cpu: 500m
+    requests:
+      cpu: 200m
+```
+- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다.
+```shell
+  $ kubectl autoscale deploy user18-ebookmgmt-payment --min=1 --max=10 --cpu-percent=15
+```
+- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다. 
+```shell
+  kubectl get deploy user18-ebookmgmt-payment -w
+```
+- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
+```shell
+  $ siege -v -c100 -t120S -r10 --content-type "application/json" 'http://user18-ebookmgmt-rent:8080/rents POST {"userId":1, "bookId":1, "bookName":"Hello, JAVA", "rentalFee":3000}'
+```
+- 어느정도 시간이 흐른 후 스케일 아웃이 벌어지는 것을 확인할 수 있다.
+![image](https://user-images.githubusercontent.com/31404198/126983948-a3b325aa-4da8-4bee-a0f7-42e40ab93693.png)
+![image](https://user-images.githubusercontent.com/31404198/126981126-926a111a-43f5-46cd-bca1-259aafebcdb4.png)
+- Siege의 로그를 보아도 전체적인 성공율이 높아진 것을 확인할 수 있다.
+![image](https://user-images.githubusercontent.com/31404198/126984210-8a61a971-61c1-4780-925a-c0f997217f21.png)
 
-- (오토스케일 적용) kubectl autoscale deploy payment --min=1 --max=10 --cpu-percent=15
-![KakaoTalk_20210713_114857158](https://user-images.githubusercontent.com/30138356/125382849-69585a00-e3d1-11eb-95cf-cf69d29b5a44.png)
+## 무정지 재배포(Readiness Probe)
+- 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
+- seige 로 배포작업 직전에 워크로드를 모니터링 함.
+```shell
+  $ siege -v -c100 -t120S -r10 --content-type "application/json" 'http://user18-ebookmgmt-rent:8080/rents POST {"userId":1, "bookId":1, "bookName":"Hello, JAVA", "rentalFee":3000}'
+```
+- 새버전으로의 배포 시작 (웹훅이 적용된 CodeBuild를 사용하기 때문에 소스 수정 후 push 하여 배포)
+```shell
+  # command의 경우
+  $ kubectl set image ...
+```
+- siege 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
+![image](https://user-images.githubusercontent.com/31404198/126987955-f461a0d1-bc50-4efb-a5e9-5bb7cd4fdefd.png)
+![image](https://user-images.githubusercontent.com/31404198/126987989-6e0c192b-280e-408b-b5c3-8ef83c63e57d.png)
+배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함.
+```yaml
+  # buildspec.yml에 설정 추가
+  
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 10
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 10
+```
+- 동일한 시나리오로 재배포 한 후 Availability 확인:
+![image](https://user-images.githubusercontent.com/31404198/126989260-0eccdfb4-962b-4a62-8068-98d7600edccd.png)
+배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
 
-- (오토스케일 적용 결과) siege -c10 -t105 -r10 -v --content-type "application/json" 'http://gateway:8080/order POST {"orderId" : 1, "customerId": 1}'
-![KakaoTalk_20210713_114858955](https://user-images.githubusercontent.com/30138356/125382970-9a388f00-e3d1-11eb-9dd8-9c8359f79433.png)
-![KakaoTalk_20210713_114900577](https://user-images.githubusercontent.com/30138356/125382972-9ad12580-e3d1-11eb-8e54-7811f98966b8.png)
+## Config Map
+- 변경 가능성이 있는 설정을 ConfigMap을 사용하여 관리
+- ebookmgmt-rent 서비스에서 바라보는 ebookmgmt-payment 서비스 url 일부분을 ConfigMap 사용하여 구현​
+- ebookmgmt-rent 서비스 내 FeignClient (/external/PaymentService.java)
+```java
+  @FeignClient(name="user18-ebookmgmt-payment", url="${api.url.payment}")//, fallback = PaymentServiceFallback.class)
+  public interface PaymentService {
+  
+    @RequestMapping(method= RequestMethod.POST, path="/payments")
+    public void payment(@RequestBody Payment payment);
+  
+  }
+```
+- ebookmgmt-rent 서비스 buildspec.yml
+```yml
+  # ConfigMap 설정
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: $_PROJECT_NAME-configmap
+  data:
+    api.url.payment: http://user18-ebookmgmt-payment:8080
+
+  # ConfigMap 사용
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: $_PROJECT_NAME
+    labels:
+      app: $_PROJECT_NAME
+  spec:
+    ...
+      spec:
+        containers:
+          - name: $_PROJECT_NAME
+            ...
+            env:
+              - name: api.url.payment
+                valueFrom:
+                  configMapKeyRef:
+                    name: $_PROJECT_NAME-configmap
+                    key: api.url.payment
+            ...
+  EOF
+```
+- 적용 후 상세내역 확인 가능
+```shell
+  $ kubectl get configmap -o yaml
+```
+![image](https://user-images.githubusercontent.com/31404198/126993203-e7d3566e-1280-4bcd-8af3-321fa80ad1bd.png)
+```shell
+  $ kubectl describe pod/user18-ebookmgmt-rent-689bb44d85-sgtr2
+```
+![image](https://user-images.githubusercontent.com/31404198/126993401-2c0fb82b-1458-46da-b9af-7f1de89612c8.png)
+
+## Self-healing (Liveness Probe)
