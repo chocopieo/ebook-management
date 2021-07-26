@@ -22,11 +22,11 @@ spec:
           ports:
             - containerPort: 8080
           env:
-              - name: api.url.payment
-                valueFrom:
-                  configMapKeyRef:
-                    name: user18-ebookmgmt-rent-configmap
-                    key: api.url.payment
+            - name: api.url.payment
+              valueFrom:
+                configMapKeyRef:
+                  name: user18-ebookmgmt-rent-configmap
+                  key: api.url.payment
           readinessProbe:
             httpGet:
               path: '/actuator/health'
