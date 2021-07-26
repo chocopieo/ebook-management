@@ -488,7 +488,7 @@
   
   }
 ```
-- 예약신청 직후(@PostPersist) 결제를 요청하도록 처리
+- 예약신청 직후(@PostPersist**) 결제를 요청하도록 처리
 ```JAVA
 # Rent.java (Entity)
 
