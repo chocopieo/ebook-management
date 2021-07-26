@@ -929,150 +929,155 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 # 운영
 
 ## Deploy / Pipeline
-각 구현체 들의 pipeline build script 는 shared-mobility/kubernetes/sharedmobility 내 
-포함되어 있다. ( ex. order.yml )
+각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
 
-- Build 및 ECR 에 Build/Push 하기
-```
-# order
-cd Order
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-order:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-order:latest
+- CodeBuild Pipeline
+![image](https://user-images.githubusercontent.com/31404198/126937997-decef4f0-9d78-4c03-ac64-0170d90384cb.png)
+  
+- Github WebHook 연결
+![image](https://user-images.githubusercontent.com/31404198/126934758-931e28fc-d88b-4698-aed2-27f35d7664dd.png)
 
-# payment
-cd ..
-cd Payment
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-payment:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-payment:latest
-
-# rent
-cd ..
-cd Rent
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-rent:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-rent:latest
-
-# stock
-cd ..
-cd Stock
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-stock:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-stock:latest
-
-# dashboard
-cd ..
-cd Dashboard
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-dashboard:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-dashboard:latest
-
-# gateway
-cd ..
-cd gateway
-mvn package
-docker build -t 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-gateway:latest .
-docker push 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-gateway:latest
-```
-
-- Kubernetes Deploy 및 Service 생성
-```
-cd ..
-kubectl apply  -f kubernetes/sharedmobility/order.yml
-kubectl apply  -f kubernetes/sharedmobility/payment.yml
-kubectl apply  -f kubernetes/sharedmobility/rent.yml
-kubectl apply  -f kubernetes/sharedmobility/stock.yml
-kubectl apply  -f kubernetes/sharedmobility/dashboard.yml
-kubectl apply  -f kubernetes/sharedmobility/gateway.yml
-```
-
-- kubernetes/sharedmobility/order.yml 파일
+- ebookmgmt-book/buildspec.yml 파일
 ```YML
----
+version: 0.2
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: order
-  labels:
-    app: order
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: order
-  template:
-    metadata:
-      labels:
-        app: order
-    spec:
-      containers:
-        - name: order
-          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user01-order:latest
+env:
+  variables:
+    _PROJECT_NAME: "user18-ebookmgmt-book"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto8
+      docker: 18
+    commands:
+      - echo install kubectl
+      - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - echo $_PROJECT_NAME
+      - echo $AWS_ACCOUNT_ID
+      - echo $AWS_DEFAULT_REGION
+      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo start command
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - mvn package -Dmaven.test.skip=true
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION  .
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo connect kubectl
+      - kubectl config set-cluster k8s --server="$KUBE_URL" --insecure-skip-tls-verify=true
+      - kubectl config set-credentials admin --token="$KUBE_TOKEN"
+      - kubectl config set-context default --cluster=k8s --user=admin
+      - kubectl config use-context default
+      - |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: $_PROJECT_NAME
+          labels:
+            app: $_PROJECT_NAME
+        spec:
           ports:
-            - containerPort: 8080
-          env:
-            - name: ORDER-URL
-              valueFrom:
-                configMapKeyRef:
-                  name: order-configmap
-                  key: order-url
-          resources:
-            requests:
-              memory: "64Mi"
-              cpu: "250m"
-            limits:
-              memory: "500Mi"
-              cpu: "500m"                     
-          readinessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
-            initialDelaySeconds: 10
-            timeoutSeconds: 2
-            periodSeconds: 5
-            failureThreshold: 10
-          livenessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
-            initialDelaySeconds: 120
-            timeoutSeconds: 2
-            periodSeconds: 5
-            failureThreshold: 5
-
-
----
-
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: order
-  labels:
-    app: order
-spec:
-  ports:
-    - port: 8080
-      targetPort: 8080
-  selector:
-    app: order
-
-
----
-
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: order-configmap
-data:
-  order-url: payment:8080
+            - port: 8080
+              targetPort: 8080
+          selector:
+            app: $_PROJECT_NAME
+        EOF
+      - |
+        cat  <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: $_PROJECT_NAME
+          labels:
+            app: $_PROJECT_NAME
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: $_PROJECT_NAME
+          template:
+            metadata:
+              labels:
+                app: $_PROJECT_NAME
+            spec:
+              containers:
+                - name: $_PROJECT_NAME
+                  image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+                  ports:
+                    - containerPort: 8080
+                  readinessProbe:
+                    httpGet:
+                      path: /actuator/health
+                      port: 8080
+                    initialDelaySeconds: 10
+                    timeoutSeconds: 2
+                    periodSeconds: 5
+                    failureThreshold: 10
+                  livenessProbe:
+                    httpGet:
+                      path: /actuator/health
+                      port: 8080
+                    initialDelaySeconds: 120
+                    timeoutSeconds: 2
+                    periodSeconds: 5
+                    failureThreshold: 5
+        EOF
+cache:
+  paths:
+    - '/root/.m2/**/*'
 ```
-
 - Deploy 완료
-![image](https://user-images.githubusercontent.com/30138356/125383175-f7ccdb80-e3d1-11eb-81c5-522009d5a4ce.PNG)
+![image](https://user-images.githubusercontent.com/31404198/126938103-6d32247c-e5e7-48d3-a60d-f6a58f1855c4.png)
+
+## 동기식 호출 / 서킷 브레이킹 / 장애격리
+- 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
+  시나리오는 예약신청(rent)-->결제(payment) 시 RESTful Request/Response 로 구현되어 있고
+  결제 요청이 과도할 경우 CB 를 통하여 장애격리.
+- Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+```yml
+# ebookmgmt-rent/application.yml
+
+feign:
+  hystrix:
+    enabled: true
+hystrix:
+  command:
+    default:
+      execution.isolation.thread.timeoutInMilliseconds: 610
+```
+- 피호출 서비스(결제:payment) 의 부하 처리
+```JAVA
+    @PrePersist
+    public void onPrePersist(){
+
+        // 강제 Delay
+        try {
+            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        ...
+    }
+```
+- siege 툴을 통한 서킷 브레이커 동작 확인
+  ![image](https://user-images.githubusercontent.com/30138356/125381495-f6e67a80-e3ce-11eb-85fc-d6b454018209.PNG)
+  ![image](https://user-images.githubusercontent.com/30138356/125381513-006fe280-e3cf-11eb-9323-fe7775b8b1b4.PNG)
+
+
 
 
 ## 무정지 재배포(Readiness Probe)
@@ -1158,45 +1163,6 @@ data:
 - 적용 후 상세내역 확인 가능
 ![KakaoTalk_20210713_132118829](https://user-images.githubusercontent.com/30138356/125390117-4469e400-e3dd-11eb-991e-a5731893f401.png)
 
-
-## Circuit Breaker
-- 서킷 브레이킹 프레임워크 선택 : Hystrix 옵션을 사용하여 구현함
-시나리오는 사용신청(order)-->결제(payment) 시 RESTful Request/Response 로 구현되어 있고 
-결제 요청이 과도할 경우 CB 를 통하여 장애격리.
-
-- Hystrix 를 설정: 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
-```yml
-# order.yml
-
-hystrix:
-  command:
-    # 전역설정
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
-```
-
-- 피호출 서비스(결제:payment) 의 부하 처리
-```JAVA
-    @PostPersist
-    public void onPostPersist(){
-        // 부하테스트 주석
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        // 결제 완료 후 KAFKA 전송
-        if(this.payStatus == "PAIED"){
-            PaymentApproved paymentApproved = new PaymentApproved();
-            BeanUtils.copyProperties(this, paymentApproved);
-            paymentApproved.publishAfterCommit();
-        }
-    }
-```
-
-- siege 툴을 통한 서킷 브레이커 동작 확인
-![image](https://user-images.githubusercontent.com/30138356/125381495-f6e67a80-e3ce-11eb-85fc-d6b454018209.PNG)
-![image](https://user-images.githubusercontent.com/30138356/125381513-006fe280-e3cf-11eb-9323-fe7775b8b1b4.PNG)
 
 ## 오토스케일 아웃
 - 결제 서비스에 대한 Replica를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15%를 넘어서면 Replica 를 10개까지 늘려준다.
