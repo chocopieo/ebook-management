@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: ebookmgmt-book
-          image: username/ebookmgmt-book:latest
+          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user18-ebookmgmt-book:v0.1
           ports:
             - containerPort: 8080
           readinessProbe:

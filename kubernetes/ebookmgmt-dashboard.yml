@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: ebookmgmt-dashboard
-          image: username/ebookmgmt-dashboard:latest
+          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user18-ebookmgmt-dashboard:v0.1
           ports:
             - containerPort: 8080
           readinessProbe:

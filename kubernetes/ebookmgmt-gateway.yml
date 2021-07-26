@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: ebookmgmt-gateway
-          image: username/ebookmgmt-gateway:latest
+          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user18-ebookmgmt-gateway:v0.1
           ports:
             - containerPort: 8080
 
@@ -36,5 +36,5 @@ spec:
       targetPort: 8080
   selector:
     app: ebookmgmt-gateway
-    type: LoadBalancer
+  type: LoadBalancer
 
