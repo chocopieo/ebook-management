@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: user18-ebookmgmt-payment
-          image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user18-ebookmgmt-payment:v0.1
+          image: 879772956301.dkr.ecr.ap-southeast-2.amazonaws.com/user18-ebookmgmt-payment:v0.1
           ports:
             - containerPort: 8080
           readinessProbe:
