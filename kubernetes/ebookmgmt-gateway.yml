@@ -3,21 +3,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ebookmgmt-gateway
+  name: user18-ebookmgmt-gateway
   labels:
-    app: ebookmgmt-gateway
+    app: user18-ebookmgmt-gateway
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ebookmgmt-gateway
+      app: user18-ebookmgmt-gateway
   template:
     metadata:
       labels:
-        app: ebookmgmt-gateway
+        app: user18-ebookmgmt-gateway
     spec:
       containers:
-        - name: ebookmgmt-gateway
+        - name: user18-ebookmgmt-gateway
           image: 879772956301.dkr.ecr.ap-northeast-2.amazonaws.com/user18-ebookmgmt-gateway:v0.1
           ports:
             - containerPort: 8080
@@ -27,14 +27,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ebookmgmt-gateway
+  name: user18-ebookmgmt-gateway
   labels:
-    app: ebookmgmt-gateway
+    app: user18-ebookmgmt-gateway
 spec:
   ports:
     - port: 8080
       targetPort: 8080
   selector:
-    app: ebookmgmt-gateway
+    app: user18-ebookmgmt-gateway
   type: LoadBalancer
 
