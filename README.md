@@ -496,7 +496,7 @@
 ```
 - 예약신청 직후(@PostPersist**) 결제를 요청하도록 처리
 ```JAVA
-# Rent.java (Entity)
+  # Rent.java (Entity)
 
   // 해당 엔티티 저장 후
   @PostPersist
@@ -616,20 +616,20 @@
 ```
 - 도서관리 시스템은 예약/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 도서관리가 유지보수로 인해 잠시 내려간 상태라도 예약신청을 받는데 문제가 없다:
 ```shell
-# 도서관리 서비스 (ebookmgmt-book) 를 잠시 내려놓음
-# 예약신청 처리
+  # 도서관리 서비스(ebookmgmt-book) 를 잠시 내려놓음
+  # 예약신청 처리
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904180-f77e1a4f-fb24-428c-83b3-47ee46dd2389.png)
 ```shell
-# 예약신청 후 결제 처리 Event 진행확인
+  # 예약신청 후 결제 처리 Event 진행확인
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904267-e481ad89-1566-467a-b9d0-b4756902261a.png)
 ```shell
-# 도서관리 서비스 기동
+  # 도서관리 서비스 기동
   cd ebookmgmt-book
   mvn spring-boot:run
 
-# 예약 상태 확인
+  # 예약 상태 확인
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904371-e0ce8ef3-071f-4c2e-8f4c-c01ea8f82029.png)
 
@@ -637,40 +637,37 @@
 - 도서등록, 예약신청, 예약승인, 도서반납 작업을 통해, Correlation-key 연결을 검증한다
 
 ```shell
-# 도서 등록 
+  # 도서 등록 
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904636-74b13edd-5228-4814-9ef9-d54373d78e1a.png)
 ```shell
-# 예약 신청 
+  # 예약 신청 
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904665-c18e84b3-3a57-483b-8ef2-96b651039c92.png)
 ```shell
-# 예약승인 처리
+  # 예약승인 처리
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904697-16674670-33d2-49e4-ac32-7d28431d471f.png)
 ```shell
-# 반납 처리
+  # 반납 처리
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904719-abbcea78-13a3-4f50-a287-38c10cd5f31e.png)
 ```shell
-# 도서내역과 예약내역 확인 ( 도서상태가 POSSIBLE로 초기화되고, 예약상태는 RETURNED로 변경됨 ) 
+  # 도서내역과 예약내역 확인 ( 도서상태가 POSSIBLE로 초기화되고, 예약상태는 RETURNED로 변경됨 ) 
 ```
 ![image](https://user-images.githubusercontent.com/31404198/126904778-51914fa6-c8f2-4f30-85d7-7880a290a020.png)
 
 ![image](https://user-images.githubusercontent.com/31404198/126904791-188295bb-2629-42b3-94e0-0ba837ba1f9c.png)
 
 ## CQRS
-
-- CQRS: Materialized View 를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이) 도 내 서비스의 화면 구성과 잦은 조회가 가능하도록 구현한다
+CQRS: Materialized View 를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이) 도 내 서비스의 화면 구성과 잦은 조회가 가능하도록 구현한다
 - 예약 / 결제서비스의 전체 현황 및 상태 조회를 제공하기 위해 dashboard를 구성하였다.
-
-dashboard의 어트리뷰트는 다음과 같다.
-
+- dashboard의 어트리뷰트는 다음과 같다.
   ![image](https://user-images.githubusercontent.com/31404198/126904884-6d65287e-22a4-4118-ad02-c7fb4580b377.png)
-
-Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반납상태, 취소상태를 업데이트 하는 모델링을 진행하였다.
-
-자동생성된 소스 샘플은 아래와 같다
+```shell
+  Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반납상태, 취소상태를 업데이트 하는 모델링을 진행하였다.
+```
+- 자동생성된 소스 샘플은 아래와 같다
 ```shell
   # Dashboard.java
 ```
@@ -926,10 +923,13 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
   }
 ```
 - CQRS에 대한 테스트는 아래와 같다.
-- 예약신청 시 결제까지 정상적으로 수행 및 등록이 되며,
+```shell
+  예약신청 시 결제까지 정상적으로 수행 및 등록이 되며,
+```
 ![image](https://user-images.githubusercontent.com/31404198/126905656-e9feb0dc-68c6-4b9d-872b-3a4d286f698b.png)
-
-- dashbaord CQRS 결과는 아래와 같다.
+```shell
+  dashbaord CQRS 결과는 아래와 같다.
+```
 ![image](https://user-images.githubusercontent.com/31404198/126905688-8b656fe8-81c4-4478-89c4-14338273811a.png)
 
 # 운영
@@ -943,7 +943,9 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 - Github WebHook 연결
 ![image](https://user-images.githubusercontent.com/31404198/126934758-931e28fc-d88b-4698-aed2-27f35d7664dd.png)
 
-- ebookmgmt-book/buildspec.yml 파일
+```shell
+  # ebookmgmt-book/buildspec.yml 파일
+```
 ```YML
   version: 0.2
   
@@ -1133,7 +1135,8 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 - siege 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
 ![image](https://user-images.githubusercontent.com/31404198/126987955-f461a0d1-bc50-4efb-a5e9-5bb7cd4fdefd.png)
 ![image](https://user-images.githubusercontent.com/31404198/126987989-6e0c192b-280e-408b-b5c3-8ef83c63e57d.png)
-배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함.
+
+- 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함.
 ```yaml
   # kubernetes/ebookmgmt-rent.yml 또는 ebookmgmt-rent/buildspec.yml에 설정 추가
   
@@ -1148,7 +1151,8 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 ```
 - 동일한 시나리오로 재배포 한 후 Availability 확인:
 ![image](https://user-images.githubusercontent.com/31404198/126989260-0eccdfb4-962b-4a62-8068-98d7600edccd.png)
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
+- 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
 
 ## Config Map
 - 변경 가능성이 있는 설정을 ConfigMap을 사용하여 관리
