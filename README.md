@@ -25,11 +25,12 @@
     - [CQRS](#cqrs)
   - [운영](#운영)
     - [Deploy / Pipeline](#deploy--pipeline)
-    - [무정지 재배포(Readiness Probe)](#무정지-재배포readiness-probe)
-    - [Self-healing(Liveness Probe)](#self-healing-liveness-probe)
-    - [Config Map](#config-map)
-    - [동기식 호출 / 서킷 브레이킹](#circuit-breaker)
+    - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출--서킷-브레이킹--장애격리)
     - [오토스케일 아웃](#오토스케일-아웃)
+    - [무정지 재배포(Readiness Probe)](#무정지-재배포readiness-probe)
+    - [Config Map](#config-map)
+    - [Self-healing(Liveness Probe)](#self-healing-liveness-probe)
+
 
 # 서비스 시나리오
 
@@ -160,33 +161,33 @@
 
 ### 완성된 1차 모형
 
-![image](https://user-images.githubusercontent.com/31404198/126870121-6a6bdc6d-1a46-4535-a85a-53512de9261d.png)
+![image](https://user-images.githubusercontent.com/31404198/126994453-8447db9c-f80e-40bf-ba56-4d039a6673b8.png)
 
     - View Model 추가
 
 ### 1차 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
 
-![image](https://user-images.githubusercontent.com/31404198/126870130-8a8827f4-8d31-475a-a600-7f2d81a6ffb1.png)
+![image](https://user-images.githubusercontent.com/31404198/126994548-d2e62c24-484e-4ba4-8916-22bd096abc3c.png)
 
     - 관리자가 전자책을 등록한다. (ok)
 
-![image](https://user-images.githubusercontent.com/31404198/126870156-eddffb7f-4cb3-4454-b082-7d9fb537ffa7.png)
+![image](https://user-images.githubusercontent.com/31404198/126994627-52c7cfe0-50e3-417c-8ffe-329051c0150f.png)
 
     - 회원이 전자책을 선택하여 대여 신청한다. (ok)
     - 회원이 결제한다. (ok)
     - 대여신청이 되면 신청내역이 관리자에게 전달된다. (ok)
 
-![image](https://user-images.githubusercontent.com/31404198/126870179-f6bd98dc-8b96-4920-9093-cf9d45b1b02c.png)
+![image](https://user-images.githubusercontent.com/31404198/126994715-63f05029-fb81-40de-9958-e51b79205837.png)
 
     - 관리자는 신청내역을 확인하고 대여승인한다. (ok)
     - 대여승인이 되면 회원은 대여가 시작된다. (ok)
     - 회원이 대여현황을 중간중간 조회한다. (View-green sticker 의 추가로 ok)
 
-![image](https://user-images.githubusercontent.com/31404198/126870206-cde5dd5e-ab1d-41ed-88e1-e493296dd0d1.png)
+![image](https://user-images.githubusercontent.com/31404198/126994767-ab2561e1-9da0-4b3b-bf78-071314b89ea1.png)
 
     - 회원이 전자책을 반납한다. (ok)
 
-![image](https://user-images.githubusercontent.com/31404198/126870215-f714e684-04e9-460f-bc05-614966ef68bf.png)
+![image](https://user-images.githubusercontent.com/31404198/126994835-f737a8b0-4172-4fab-896f-2291bc92f0d6.png)
 
     - 관리자는 신청내역을 확인하고 대여거절한다. (ok)
     - 대여거절이 되면 결제가 취소된다. (ok)
@@ -194,7 +195,7 @@
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/31404198/126870250-c81107c4-d23d-4a45-b951-021128298b11.png)
+![image](https://user-images.githubusercontent.com/31404198/126994900-98b2b8e8-2564-450b-8adb-cd3f7fbd9587.png)
 
     - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
     - 고객 예약시 결제처리:  결제가 완료되지 않은 예약은 절대 대여를 할 수 없기 때문에, ACID 트랜잭션 적용. 예약완료시 결제처리에 대해서는 Request-Response 방식 처리
@@ -1087,7 +1088,7 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다.
 
 - (Spring FeignClient + Hystrix 적용한 경우) 위에서 설정된 CB는 제거
-- 오토스케일 아웃 테스트를 위해 ebookmgmt-payment/buildspec.yml에 메모리 설정 추가
+- 오토스케일 아웃 테스트를 위해 kubernetes/ebookmgmt-payment.yml 또는 ebookmgmt-payment/buildspec.yml에 메모리 설정 추가
 ```yaml
   resources:
     limits:
@@ -1101,7 +1102,7 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 ```
 - 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다. 
 ```shell
-  kubectl get deploy user18-ebookmgmt-payment -w
+  $ kubectl get deploy user18-ebookmgmt-payment -w
 ```
 - CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
 ```shell
@@ -1129,7 +1130,7 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 ![image](https://user-images.githubusercontent.com/31404198/126987989-6e0c192b-280e-408b-b5c3-8ef83c63e57d.png)
 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함.
 ```yaml
-  # buildspec.yml에 설정 추가
+  # kubernetes/ebookmgmt-rent.yml 또는 ebookmgmt-rent/buildspec.yml에 설정 추가
   
   readinessProbe:
     httpGet:
@@ -1146,8 +1147,11 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 
 ## Config Map
 - 변경 가능성이 있는 설정을 ConfigMap을 사용하여 관리
-- ebookmgmt-rent 서비스에서 바라보는 ebookmgmt-payment 서비스 url 일부분을 ConfigMap 사용하여 구현​
-- ebookmgmt-rent 서비스 내 FeignClient (/external/PaymentService.java)
+
+
+    ebookmgmt-rent 서비스에서 바라보는 ebookmgmt-payment 서비스 url 일부분을 ConfigMap 사용하여 구현​
+    ebookmgmt-rent 서비스 내 FeignClient (/external/PaymentService.java)
+
 ```java
   @FeignClient(name="user18-ebookmgmt-payment", url="${api.url.payment}")//, fallback = PaymentServiceFallback.class)
   public interface PaymentService {
@@ -1157,7 +1161,7 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
   
   }
 ```
-- ebookmgmt-rent 서비스 buildspec.yml
+- kubernetes/ebookmgmt-rent.yml 또는 ebookmgmt-rent/buildspec.yml
 ```yml
   # ConfigMap 설정
   apiVersion: v1
@@ -1200,3 +1204,47 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 ![image](https://user-images.githubusercontent.com/31404198/126993401-2c0fb82b-1458-46da-b9af-7f1de89612c8.png)
 
 ## Self-healing (Liveness Probe)
+- kubernetes/ebookmgmt-rent.yml 또는 ebookmgmt-rent/buildspec.yml 수정
+
+
+    컨테이너 실행 후 /tmp/healthy 파일을 만들고
+    90초 후 삭제
+    livenessProbe에 'cat /tmp/healthy'으로 검증하도록 함
+
+```yml
+  apiVersion: apps/v1
+  kind: Deployment
+  ...
+  args:
+    - /bin/sh
+    - -c
+    - touch /tmp/healty; sleep 90; rm -rf /tmp/healthy; sleep 600
+  ...
+  livenessProbe:
+#    httpGet:
+#      path: /actuator/health
+#      port: 8080
+    exec:
+      command:
+        - cat
+        - /tmp/healthy
+    initialDelaySeconds: 120
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 5
+```
+
+- 컨테이너 실행 후 90초 동인은 정상이나 이후 /tmp/healthy 파일이 삭제되어 livenessProbe에서 실패를 리턴하게 되고, restarts 카운트가 증가함
+```shell
+  $ kubectl get pod -o wide
+```
+![image](https://user-images.githubusercontent.com/31404198/127079317-dbb91e99-ed32-4e9c-9465-6a8229e28b21.png)
+
+```shell
+  $ kubectl describe pod/user18-ebookmgmt-rent
+```
+![image](https://user-images.githubusercontent.com/31404198/127079513-dc910163-750e-4c64-a7cb-02cb527fdcd7.png)
+
+- pod 정상 상태 일때 pod 진입하여 /tmp/healthy 파일 생성해주면 정상 상태 유지되어 더이상 restarts 카운트가 증가하지 않음
+![image](https://user-images.githubusercontent.com/31404198/127080403-6fd5baa1-cce4-4f0d-a4de-dabbfb7808ea.png)
+![image](https://user-images.githubusercontent.com/31404198/127080529-7ca36ddb-0820-4c71-b1e7-33f9b96c27e3.png)
