@@ -232,6 +232,11 @@
 
 ## 게이트웨이 적용
 ```yml
+  server:
+    port: 8088
+  
+  ---
+  
   spring:
     profiles: default
     cloud:
@@ -275,19 +280,19 @@
       gateway:
         routes:
           - id: ebookmgmt-rent
-            uri: http://ebookmgmt-rent:8080
+            uri: http://user18-ebookmgmt-rent:8080
             predicates:
               - Path=/rents/**
           - id: ebookmgmt-payment
-            uri: http://ebookmgmt-payment:8080
+            uri: http://user18-ebookmgmt-payment:8080
             predicates:
               - Path=/payments/**
           - id: ebookmgmt-book
-            uri: http://ebookmgmt-book:8080
+            uri: http://user18-ebookmgmt-book:8080
             predicates:
               - Path=/books/**
           - id: ebookmgmt-dashboard
-            uri: http://ebookmgmt-dashboard:8080
+            uri: http://user18-ebookmgmt-dashboard:8080
             predicates:
               - Path= /dashboards/**
         globalcors:
@@ -309,15 +314,15 @@
   apiVersion: v1
   kind: Service
   metadata:
-    name: ebookmgmt-gateway
+    name: user18-ebookmgmt-gateway
     labels:
-      app: ebookmgmt-gateway
+      app: user18-ebookmgmt-gateway
   spec:
     ports:
       - port: 8080
         targetPort: 8080
     selector:
-      app: ebookmgmt-gateway
+      app: user18-ebookmgmt-gateway
     type: LoadBalancer
 ```
 
@@ -1116,7 +1121,7 @@ Rented, Paid, Approved, Returned, Canceled 이벤트에 따라 주문상태, 반
 
 ## 무정지 재배포(Readiness Probe)
 - 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
+- siege 로 배포작업 직전에 워크로드를 모니터링 함.
 ```shell
   $ siege -v -c100 -t120S -r10 --content-type "application/json" 'http://user18-ebookmgmt-rent:8080/rents POST {"userId":1, "bookId":1, "bookName":"Hello, JAVA", "rentalFee":3000}'
 ```
