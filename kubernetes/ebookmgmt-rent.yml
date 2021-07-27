@@ -40,9 +40,9 @@ spec:
             periodSeconds: 5
             failureThreshold: 10
           livenessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
+#            httpGet:
+#              path: '/actuator/health'
+#              port: 8080
             exec:
               command:
               - cat
