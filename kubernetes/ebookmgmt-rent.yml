@@ -27,6 +27,10 @@ spec:
                 configMapKeyRef:
                   name: user18-ebookmgmt-rent-configmap
                   key: api.url.payment
+          args:
+            - /bin/sh
+            - -c
+            - touch /tmp/healty; sleep 90; rm -rf /tmp/healthy; sleep 600
           readinessProbe:
             httpGet:
               path: '/actuator/health'
@@ -39,6 +43,10 @@ spec:
             httpGet:
               path: '/actuator/health'
               port: 8080
+            exec:
+              command:
+                - cat
+                - /tmp/healthy
             initialDelaySeconds: 120
             timeoutSeconds: 2
             periodSeconds: 5
